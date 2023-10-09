@@ -22,6 +22,10 @@ from imblearn.over_sampling import SMOTE
 import SWIM_Maha.Swim_Maha as Swim
 from imblearn.metrics import geometric_mean_score
 from sklearn.metrics import accuracy_score
+from sklearn.metrics import confusion_matrix, recall_score, precision_score
+import seaborn as sns
+
+
 
 random.seed(a=125324)
 np.random.seed(seed=125324)
@@ -52,6 +56,7 @@ X += 2 * rng.uniform(size=X.shape)
 
 linearly_separable = (X, y)
 centers = [[1, 1], [-1, -1], [0, -0.15]]
+'''
 datasets = [make_moons(n_samples=500,noise=0.35, random_state=0),
             make_circles(n_samples=500,noise=0.25, factor=0.5, random_state=1),
             make_classification(n_samples=500,n_features=2,n_redundant=0,
@@ -64,9 +69,12 @@ datasets = [make_moons(n_samples=500,noise=0.35, random_state=0),
                              cluster_std=[0.5, 0.25, 0.5]),
             linearly_separable
             ]
+'''
+datasets = [make_classification(n_samples=10000,n_features=2,n_redundant=0,
+                             n_clusters_per_class=2, n_classes=1, weights=[0.999,0.001])]
 ds_names = ['moons', 'circles','clusters', 'clusters2','cluster3','blobs']
 # for dsNum in [0,1,2,3,4]:
-for dsNum in [5,4,3,2,1,0]:
+for dsNum in [0]: #[5,4,3,2,1,0]:
     ds_name = ds_names[dsNum]+"1"
     print(ds_name)
     # for name, clf in zip(names, classifiers):
@@ -74,6 +82,9 @@ for dsNum in [5,4,3,2,1,0]:
     clf  = classifiers[2]
     # preprocess dataset, split into training and test part
     X, y = datasets[dsNum]
+
+    #X = X[:, 0:-1]
+
     # X = np.concatenate([X,X],axis=1)
     if ds_name == 'cluster31':
         X = X[:, 0:-1]
@@ -106,6 +117,25 @@ for dsNum in [5,4,3,2,1,0]:
     #
     g_mean = np.sqrt(g_mean)
     score = g_mean
+
+    #threshold_fixed = 52
+    #pred_y = [1 if e > threshold_fixed else 0 for e in error_df.Reconstruction_error.values]
+    #error_df['pred'] = pred_y
+    #conf_matrix = confusion_matrix(error_df.True_class, pred_y)
+
+    conf_matrix = confusion_matrix(y_test, y_pred)
+
+    plt.figure(figsize=(4, 4))
+    sns.heatmap(conf_matrix, annot=True, fmt="d");
+    plt.title("Confusion matrix_raw")
+    plt.ylabel('True class')
+    plt.xlabel('Predicted class')
+    plt.show()
+
+    print(" Accuracy: "+"raw", accuracy_score(y_test, y_pred))
+    print(" Recall: "+"raw", recall_score(y_test, y_pred))
+    print(" Precision: "+"raw", precision_score(y_test, y_pred))
+
     # Plot the decision boundary. For that, we will assign a color to each
     # point in the mesh [x_min, x_max]x[y_min, y_max].
     if hasattr(clf, "decision_function"):
@@ -133,7 +163,10 @@ for dsNum in [5,4,3,2,1,0]:
             size=15, horizontalalignment='right')
     # plt.show()
     plt.savefig("demoResults/mahaTest/imbalanced_"+ds_name+"MinSize"+str(MIN_SIZE)+"_raw"+name+".pdf")
+    #plt.savefig("imbalanced_" + ds_name + "MinSize" + str(MIN_SIZE) + "_raw" + name + ".pdf")
     plt.close()
+
+
     for sd in [0.25,0.5,1]:
         print(sd)
         ax = plt.subplot(1,1, 1)
@@ -152,6 +185,19 @@ for dsNum in [5,4,3,2,1,0]:
         #
         g_mean = np.sqrt(g_mean)
         score = g_mean
+
+        conf_matrix = confusion_matrix(y_test, y_pred)
+
+        plt.figure(figsize=(4, 4))
+        sns.heatmap(conf_matrix, annot=True, fmt="d");
+        plt.title("Confusion matrix_swimmaha"+str(sd))
+        plt.ylabel('True class')
+        plt.xlabel('Predicted class')
+        plt.show()
+
+        print(" Accuracy: " + "swimmaha"+str(sd), accuracy_score(y_test, y_pred))
+        print(" Recall: " + "swimmaha"+str(sd), recall_score(y_test, y_pred))
+        print(" Precision: " + "swimmaha"+str(sd), precision_score(y_test, y_pred))
         #
         if hasattr(clf, "decision_function"):
             Z = clf.decision_function(np.c_[xx.ravel(), yy.ravel()])
@@ -185,13 +231,15 @@ for dsNum in [5,4,3,2,1,0]:
                 size=15, horizontalalignment='right')
         # plt.show()
         plt.savefig("demoResults/mahaTest/imbalanced_"+ds_name+"MinSize"+str(MIN_SIZE)+"_SwimMahaSd"+str(sd)+name+".pdf")
+
         plt.close()
 
     # SMOTE
     for k in [5,7,9]:
         ax = plt.subplot(1,1, 1)
         sm = SMOTE(k_neighbors=k)
-        X_res, y_res = sm.fit_sample(x_trainImb, y_trainImb)
+        #X_res, y_res = sm.fit_sample(x_trainImb, y_trainImb)
+        X_res, y_res = sm.fit_resample(x_trainImb, y_trainImb)
         clf.fit(X_res, y_res)
         y_pred = clf.predict(X_test)
         g_mean = 1.0
@@ -202,6 +250,20 @@ for dsNum in [5,4,3,2,1,0]:
         #
         g_mean = np.sqrt(g_mean)
         score = g_mean
+
+        conf_matrix = confusion_matrix(y_test, y_pred)
+
+        plt.figure(figsize=(4, 4))
+        sns.heatmap(conf_matrix, annot=True, fmt="d");
+        plt.title("Confusion matrix_smote" + str(k))
+        plt.ylabel('True class')
+        plt.xlabel('Predicted class')
+        plt.show()
+
+        print(" Accuracy: " + "smote"+str(k), accuracy_score(y_test, y_pred))
+        print(" Recall: " + "smote"+str(k), recall_score(y_test, y_pred))
+        print(" Precision: " + "smote"+str(k), precision_score(y_test, y_pred))
+
         #
         if hasattr(clf, "decision_function"):
             Z = clf.decision_function(np.c_[xx.ravel(), yy.ravel()])
